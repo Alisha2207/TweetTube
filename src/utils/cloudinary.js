@@ -7,7 +7,33 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadPhotoOnCloudinary = async (localFilePath) => {
+const uploadPhotoOnCloudinary = async (buffer) => {
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: "auto",
+          folder: "videotube/photos",
+        },
+        (error, result) => {
+          if (error) {
+            return reject(error); // Reject the promise on error
+          }
+          resolve(result); // Resolve the promise with the result
+        }
+      );
+      stream.end(buffer); // End the stream with the buffer data
+    });
+
+    return uploadResult; // Return the successful upload result
+  } catch (error) {
+    console.error("Error uploading photo to Cloudinary:", error);
+    throw new Error("Failed to upload photo to Cloudinary");
+  }
+};
+
+
+const uploadPhotoOnCloudinary2 = async (localFilePath) => {
   try {
     if (!localFilePath) return null;
 
@@ -53,9 +79,9 @@ const uploadVideoOnCloudinary = async (localFilePath) => {
           reject(error);
         } else {
           console.log("cloudinary video file", result);
-          
+
           const hlsurl = result.eager?.[0]?.secure_url;
-          
+
           if (!hlsurl) {
             console.log("HLS URL not found in Cloudinary response");
             reject(new Error("HLS URL not generated"));

@@ -446,61 +446,63 @@ const publishAVideo = asyncHandler(async (req, res) => {
   //   .json(new ApiResponse(200, video, "Video published successfully"));
 
 
-// 3rd Iteration
-try {
-  const { title, description } = req.body;
-  if (!title) throw new ApiError(400, "Title is Required");
+  // 3rd Iteration
+  try {
+    const { title, description } = req.body;
+    if (!title) throw new ApiError(400, "Title is Required");
 
-  const videoFileLocalFilePath = req.files?.videoFile?.[0]?.path;
-  if (!videoFileLocalFilePath) throw new ApiError(400, "Video File Must be Required");
+    // const videoFileLocalFilePath = req.files?.videoFile?.[0]?.path;
+    const videoFileLocalFilePath = req.files?.videoFile?.data;
+    if (!videoFileLocalFilePath) throw new ApiError(400, "Video File Must be Required");
 
-  const thumbnailLocalFilePath = req.files?.thumbnail?.[0]?.path;
-  if (!thumbnailLocalFilePath) throw new ApiError(400, "Thumbnail File Must be Required");
+    // const thumbnailLocalFilePath = req.files?.thumbnail?.[0]?.path;
+    const thumbnailLocalFilePath = req.files?.thumbnail?.path;
+    if (!thumbnailLocalFilePath) throw new ApiError(400, "Thumbnail File Must be Required");
 
-  if (req.customConnectionClosed) return abortRequest();
+    if (req.customConnectionClosed) return abortRequest();
 
-  // Step 1: Upload video to Cloudinary
-  const videoFile = await uploadVideoOnCloudinary(videoFileLocalFilePath);
-  if (!videoFile || !videoFile.hlsurl) throw new ApiError(500, "Error while Uploading Video File");
+    // Step 1: Upload video to Cloudinary
+    const videoFile = await uploadVideoOnCloudinary(videoFileLocalFilePath);
+    if (!videoFile || !videoFile.hlsurl) throw new ApiError(500, "Error while Uploading Video File");
 
-  // Ensure video duration is available
-  const videoDuration = videoFile.duration;
-  if (!videoDuration) throw new ApiError(500, "Video duration is missing from Cloudinary response");
+    // Ensure video duration is available
+    const videoDuration = videoFile.duration;
+    if (!videoDuration) throw new ApiError(500, "Video duration is missing from Cloudinary response");
 
-  // Step 2: Upload thumbnail
-  const thumbnailFile = await uploadPhotoOnCloudinary(thumbnailLocalFilePath);
-  if (!thumbnailFile) throw new ApiError(500, "Error while uploading thumbnail file");
+    // Step 2: Upload thumbnail
+    const thumbnailFile = await uploadPhotoOnCloudinary(thumbnailLocalFilePath);
+    if (!thumbnailFile) throw new ApiError(500, "Error while uploading thumbnail file");
 
-  if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url);
+    if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url);
 
-  // Step 3: Save the video to the database
-  const video = await Video.create({
-    videoFile: videoFile.hlsurl,
-    title,
-    description: description || "No description provided",
-    duration: videoDuration,
-    thumbnail: thumbnailFile.url,
-    owner: req.user?._id,
-  });
+    // Step 3: Save the video to the database
+    const video = await Video.create({
+      videoFile: videoFile.hlsurl,
+      title,
+      description: description || "No description provided",
+      duration: videoDuration,
+      thumbnail: thumbnailFile.url,
+      owner: req.user?._id,
+    });
 
-  if (!video) throw new ApiError(500, "Error while publishing video");
+    if (!video) throw new ApiError(500, "Error while publishing video");
 
-  if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url, video._id);
+    if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url, video._id);
 
-  return res.status(200).json(new ApiResponse(200, video, "Video published successfully"));
+    return res.status(200).json(new ApiResponse(200, video, "Video published successfully"));
 
-} catch (error) {
-  console.error("Error in publishAVideo controller:", error);
-  
-  // Clean up any uploaded files if an error occurs
-  if (error.cloudinaryPublicId) {
-    await cloudinary.uploader.destroy(error.cloudinaryPublicId);
+  } catch (error) {
+    console.error("Error in publishAVideo controller:", error);
+
+    // Clean up any uploaded files if an error occurs
+    if (error.cloudinaryPublicId) {
+      await cloudinary.uploader.destroy(error.cloudinaryPublicId);
+    }
+
+    return res.status(error.statusCode || 500).json(
+      new ApiError(error.statusCode || 500, error.message || "An error occurred while publishing the video")
+    );
   }
-  
-  return res.status(error.statusCode || 500).json(
-    new ApiError(error.statusCode || 500, error.message || "An error occurred while publishing the video")
-  );
-}
 });
 
 // const getVideoById = asyncHandler(async (req, res) => {
@@ -714,22 +716,23 @@ const updateVideo = asyncHandler(async (req, res) => {
 
   try {
     if (!isValidObjectId(videoId)) {
-      throw new ApiError(400,  "Invalid video id");
+      throw new ApiError(400, "Invalid video id");
     }
 
     const { title, description } = req.body;
 
     if (!title || typeof title !== 'string' || title.trim() === '') {
-      throw new ApiError(400,  "Invalid title");
-    }
-      
-      if(!description || typeof description !== "string" || description.trim=='') {
-      throw new ApiError(400,  "Invalid description");
+      throw new ApiError(400, "Invalid title");
     }
 
-    const thumbnailLocalPath = req.file?.path;
+    if (!description || typeof description !== "string" || description.trim == '') {
+      throw new ApiError(400, "Invalid description");
+    }
+
+    // const thumbnailLocalPath = req.file?.path;
+    const thumbnailLocalPath = req.files?.thumbnail?.data;
     if (!thumbnailLocalPath) {
-      throw new ApiError(400,  "Thumbnail file is required");
+      throw new ApiError(400, "Thumbnail file is required");
     }
     const thumbnailOnCloudinary = await uploadPhotoOnCloudinary(thumbnailLocalPath);
 
@@ -749,7 +752,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     if (!video) {
       throw new ApiError(
         404,
-        
+
         "Video not found or you are not allowed to update this video"
       );
     }
@@ -773,12 +776,12 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
   try {
     if (!isValidObjectId(videoId)) {
-      throw new ApiError(400,  "Invalid video id");
+      throw new ApiError(400, "Invalid video id");
     }
 
     const video = await Video.findById(videoId);
     if (!video) {
-      throw new ApiError(404,  "Video not found");
+      throw new ApiError(404, "Video not found");
     }
 
     // if (!video?.Owner?.includes(req.user?._id)) {
@@ -799,7 +802,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200,  "Video deleted successfully"));
+      .json(new ApiResponse(200, "Video deleted successfully"));
   } catch (error) {
     console.error("Error in deleting video:", error);
     throw new ApiError(500, error.message, "Internal server error");
@@ -821,7 +824,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
   });
 
   if (!video) {
-    throw new ApiError(404,  "Video not found");
+    throw new ApiError(404, "Video not found");
   }
 
   video.isPublished = !video.isPublished;

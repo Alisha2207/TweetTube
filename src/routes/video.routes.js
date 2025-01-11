@@ -9,8 +9,8 @@ import {
     updateView,
     getAllVideosByOption
 } from "../controllers/video.controller.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
-import {upload} from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js"
+import { upload } from "../middlewares/multer.middleware.js"
 import { checkUser } from '../middlewares/openRouteAuth.middleware.js';
 
 const router = Router();
@@ -22,17 +22,17 @@ router
     .get(getAllVideos)
     .post(
         verifyJWT,
-        upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            },
-            
-        ]),
+        // upload.fields([
+        //     {
+        //         name: "videoFile",
+        //         maxCount: 1,
+        //     },
+        //     {
+        //         name: "thumbnail",
+        //         maxCount: 1,
+        //     },
+
+        // ]),
         publishAVideo
     );
 
@@ -40,7 +40,9 @@ router
     .route("/:videoId")
     .get(checkUser, getVideoById)
     .delete(verifyJWT, deleteVideo)
-    .patch(verifyJWT, upload.single("thumbnail"), updateVideo);
+    .patch(verifyJWT,
+        //  upload.single("thumbnail"), 
+        updateVideo);
 
 router.route("/toggle/publish/:videoId").patch(verifyJWT, togglePublishStatus);
 router.route("/view/:videoId").patch(checkUser, updateView);

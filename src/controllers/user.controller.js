@@ -72,16 +72,17 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // Handling File
+  //buffer
+  let avatarLocalPath = req.files?.['avatar']?.data;
 
-  let avatarLocalPath = "";
-  if (req.files && req.files.avatar && req.files?.avatar.length > 0) {
-    avatarLocalPath = req.files?.avatar[0]?.path;
-  }
+  // if (req.files && req.files.avatar && req.files?.avatar.length > 0) {
+  //   avatarLocalPath = req.files?.avatar[0]?.path;
+  // }
 
-  let coverImageLocalPath = "";
-  if (req.files && req.files.coverImage && req.files?.coverImage.length > 0) {
-    coverImageLocalPath = req.files?.coverImage[0]?.path;
-  }
+  let coverImageLocalPath = req.files?.['coverImage']?.data;
+  // if (req.files && req.files.coverImage && req.files?.coverImage.length > 0) {
+  //   coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "avatar Image is Required");
@@ -89,7 +90,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // uploading on cloudinary
 
-  let avatarRes = await uploadOnCloudinary(avatarLocalPath);
+  let avatarRes = await uploadOnCloudinary(avatarLocalPath)
+
   if (!avatarRes)
     throw new ApiError(500, "Internal Server Error!!! Files Unable to Upload");
 
@@ -177,14 +179,14 @@ const loginUser = asyncHandler(async (req, res) => {
   //   Partitioned: true,
   // };
 
-   // Clear any existing tokens first
-   res.clearCookie('accessToken', COOKIE_OPTIONS);
-   res.clearCookie('refreshToken', COOKIE_OPTIONS);
- 
-   // Set new tokens
-   res.cookie('accessToken', accessToken, COOKIE_OPTIONS);
-   res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 10 * 24 * 60 * 60 * 1000 }); // 10 days for refresh token
- 
+  // Clear any existing tokens first
+  res.clearCookie('accessToken', COOKIE_OPTIONS);
+  res.clearCookie('refreshToken', COOKIE_OPTIONS);
+
+  // Set new tokens
+  res.cookie('accessToken', accessToken, COOKIE_OPTIONS);
+  res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 10 * 24 * 60 * 60 * 1000 }); // 10 days for refresh token
+
   return res
     .status(200)
     .json(
@@ -384,7 +386,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
-  const avatarLocalPath = req.file?.path;
+  // const avatarLocalPath = req.file?.path;
+  const avatarLocalPath = req.files?.avatar?.data;
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "File required");
