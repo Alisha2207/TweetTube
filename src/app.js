@@ -64,4 +64,8 @@ app.use("/api/v1/dashboard", dashboardRouter);
 // http://localhost:3000/api/v1/about/user
 app.use("/api/v1/about/user/", aboutRouter);
 
+app.get('/',(req, res)=>{
+    res.send("Heloo");
+})
+
 export { app }
